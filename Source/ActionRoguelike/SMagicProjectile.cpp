@@ -6,6 +6,8 @@
 #include "Particles/ParticleSystemComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "SAttributeComponent.h"
+#include "GameFramework/SpringArmComponent.h"
+#include "DrawDebugHelpers.h"
 
 // Sets default values
 ASMagicProjectile::ASMagicProjectile()
@@ -31,6 +33,40 @@ ASMagicProjectile::ASMagicProjectile()
 	MovementComp->InitialSpeed = 1000.0f;
 	MovementComp->bRotationFollowsVelocity = true;
 	MovementComp->bInitialVelocityInLocalSpace = true; // 初始速度将相对于对象的本地坐标空间进行计算
+	MovementComp->SetVelocityInLocalSpace(ASMagicProjectile::GetMoveDirection());
+}
+
+FVector ASMagicProjectile::GetMoveDirection()
+{
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("into GetDrrection."));
+
+	APawn* MyInstigator = Cast<APawn>( this->GetInstigator());
+	FVector HitLocation;
+	if (MyInstigator)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("instigator exisit."));
+		USpringArmComponent* SpringArmComp = Cast<USpringArmComponent>(MyInstigator->GetComponentByClass(USpringArmComponent::StaticClass()));
+		FVector SpringArmForwardVector = SpringArmComp->GetForwardVector();
+		FVector End = SpringArmForwardVector * 1000;
+
+		FCollisionObjectQueryParams ObjectQueryParams;
+		ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldDynamic);  // 世界中动态的物体才能触发
+
+		FHitResult Hit;
+		bool bHit = GetWorld()->LineTraceSingleByObjectType(Hit, SpringArmForwardVector, End, ObjectQueryParams);
+		
+		FColor LineColor = bHit ? FColor::Green : FColor::Red;
+		if (bHit)
+		{
+			HitLocation = Hit.ImpactPoint;
+		}
+		else {
+			HitLocation = End;
+		}
+		DrawDebugLine(GetWorld(), SpringArmForwardVector, End,LineColor, false, 2.0f, 0, 2.0f);
+		
+	}
+	return HitLocation - this->GetActorLocation();
 
 }
 
@@ -47,6 +83,8 @@ void ASMagicProjectile::OnActorOverlap(UPrimitiveComponent* OverlappedComponent,
 		}
 	}
 }
+
+
 
 // Called when the game starts or when spawned
 void ASMagicProjectile::BeginPlay()

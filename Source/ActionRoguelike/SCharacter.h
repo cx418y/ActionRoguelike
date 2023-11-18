@@ -7,6 +7,7 @@
 #include "SCharacter.generated.h"
 
 
+
 class USpringArmComponent;
 class UCameraComponent;
 class USInteractionComponent;
@@ -23,11 +24,21 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Attack")
 	TSubclassOf<AActor> ProjectileClass;
 
+	UPROPERTY(EditAnywhere, Category = "Attack")
+	TSubclassOf<AActor> DashProjectileClass;
+
+	UPROPERTY(EditAnywhere, Category = "Attack")
+	TSubclassOf<AActor> BlackHoleProjectileClass;
+
 	UPROPERTY(EditAnywhere, Category="Attack")
 	UAnimMontage* AttackAnim;
 
 	FTimerHandle TimerHandle_PrimaryAttack;
+	FTimerHandle TimerHandle_Dash;
+	FTimerHandle TimerHandle_BlackHole;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Attack")
+	float AttackAnimDelay;
 
 public:
 	// Sets default values for this character's properties
@@ -58,9 +69,25 @@ protected:
 
 	void PrimaryAttack();
 
+	void PrimaryAttack_TimeElapsed();
+
+	void Dash();
+
+	void Dash_TimeElapsed();
+
+	void BlackHole();
+
+	void BlackHole_TimeElapsed();
+
+	// Re-use spawn logic between attacks
+	void SpawnProjectile(TSubclassOf<AActor> ClassToSpawn);
+
 	void PrimaryInteract();
 
-	void PrimaryAttack_TimeElapsed();
+	UFUNCTION()
+	void OnHealthChanged(AActor* InstigatorActor, USAttributeComponent* OwningComp, float NewHealth, float Delta);
+
+	virtual void PostInitializeComponents() override;
 
 public:	
 	// Called every frame

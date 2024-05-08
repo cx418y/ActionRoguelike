@@ -8,6 +8,8 @@
 #include "SInteractionComponent.h"
 #include "SAttributeComponent.h"
 #include "DrawDebugHelpers.h"
+#include "Kismet/GameplayStatics.h"
+#include "SActionComponent.h"
 
 
 
@@ -30,10 +32,12 @@ ASCharacter::ASCharacter()
 
 	AttributeComp = CreateDefaultSubobject<USAttributeComponent>("AttributeComp");
 
+	ActionComp = CreateDefaultSubobject<USActionComponent>("ActionComp");
+
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 	bUseControllerRotationYaw = false;
 
-	AttackAnimDelay = 0.2f;
+	TimeToHitParamName = "TimeToHit";
 
 }
 
@@ -69,7 +73,10 @@ void ASCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 
 	PlayerInputComponent->BindAction("PrimaryAttack", IE_Pressed, this, &ASCharacter::PrimaryAttack);
 	PlayerInputComponent->BindAction("Dash", IE_Pressed, this, &ASCharacter::Dash);
-	PlayerInputComponent->BindAction("BlackHole", IE_Pressed, this, &ASCharacter::BlackHole);
+	PlayerInputComponent->BindAction("BlackHole", IE_Pressed, this, &ASCharacter::BlackHoleAttack);
+
+	PlayerInputComponent->BindAction("Sprint", IE_Pressed, this, &ASCharacter::SprintStart);
+	PlayerInputComponent->BindAction("Sprint", IE_Released, this, &ASCharacter::SprintStop);
 
 	PlayerInputComponent->BindAction("PrimaryInteract", IE_Pressed, this, &ASCharacter::PrimaryInteract);
 
@@ -115,19 +122,20 @@ void ASCharacter::MoveRight(float Value)
 	AddMovementInput(RightVector, Value);
 }
 
-void ASCharacter::PrimaryAttack()
-{
+//void ASCharacter::PrimaryAttack()
+//{
+//
+//	// PlayAnimMontage(AttackAnim);
+//	StartAttackEffects();
+//
+//	GetWorldTimerManager().SetTimer(TimerHandle_PrimaryAttack, this, &ASCharacter::PrimaryAttack_TimeElapsed, AttackAnimDelay);
+//
+//}
 
-	PlayAnimMontage(AttackAnim);
 
-	GetWorldTimerManager().SetTimer(TimerHandle_PrimaryAttack, this, &ASCharacter::PrimaryAttack_TimeElapsed, AttackAnimDelay);
-
-}
-
-
-void ASCharacter::PrimaryAttack_TimeElapsed()
-{
-	SpawnProjectile(ProjectileClass);
+//void ASCharacter::PrimaryAttack_TimeElapsed()
+//{
+//	SpawnProjectile(ProjectileClass);
 
 // 	FVector HandLocation = GetMesh()->GetSocketLocation("Muzzle_01");
 // 
@@ -167,74 +175,112 @@ void ASCharacter::PrimaryAttack_TimeElapsed()
 // 
 // 	GetWorld()->SpawnActor<AActor>(ProjectileClass, HandLocation, Rotation, SpawnParams);
 
+//}
+
+//void ASCharacter::Dash()
+//{
+//	// PlayAnimMontage(AttackAnim);
+//	StartAttackEffects();
+//
+//	GetWorldTimerManager().SetTimer(TimerHandle_Dash, this, &ASCharacter::Dash_TimeElapsed, AttackAnimDelay);
+//}
+
+
+//void ASCharacter::Dash_TimeElapsed()
+//{
+//	SpawnProjectile(DashProjectileClass);
+//}
+
+//void ASCharacter::BlackHole()
+//{
+//	PlayAnimMontage(AttackAnim);
+//
+//	GetWorldTimerManager().SetTimer(TimerHandle_BlackHole, this, &ASCharacter::BlackHole_TimeElapsed, AttackAnimDelay);
+//}
+//
+//void ASCharacter::BlackHole_TimeElapsed()
+//{
+//	SpawnProjectile(BlackHoleProjectileClass);
+//}
+//
+//void ASCharacter::StartAttackEffects()
+//{
+//	PlayAnimMontage(AttackAnim);
+//
+//	UGameplayStatics::SpawnEmitterAttached(CastingEffect, GetMesh(), HandSocketName, FVector::ZeroVector, FRotator::ZeroRotator, EAttachLocation::SnapToTarget);
+//
+//}
+
+//void ASCharacter::SpawnProjectile(TSubclassOf<AActor> ClassToSpawn)
+//{
+//	if (ensureAlways(ClassToSpawn))
+//	{
+//		FVector HandLocation = GetMesh()->GetSocketLocation("Muzzle_01");
+//
+//		FActorSpawnParameters SpawnParams;
+//		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+//		SpawnParams.Instigator = this;
+//
+//		FCollisionShape Shape;
+//		Shape.SetSphere(20.0f);
+//
+//		// Ignore Player
+//		FCollisionQueryParams Params;
+//		Params.AddIgnoredActor(this);
+//
+//		FCollisionObjectQueryParams ObjParams;
+//		ObjParams.AddObjectTypesToQuery(ECC_WorldDynamic);
+//		ObjParams.AddObjectTypesToQuery(ECC_WorldStatic);
+//		ObjParams.AddObjectTypesToQuery(ECC_Pawn);
+//
+//		FVector TraceStart = CameraComp->GetComponentLocation();
+//
+//		// endpoint far into the look-at distance (not too far, still adjust somewhat towards crosshair on a miss)
+//		FVector TraceEnd = CameraComp->GetComponentLocation() + (GetControlRotation().Vector() * 5000);
+//
+//		FHitResult Hit;
+//		// returns true if we got to a blocking hit
+//		if (GetWorld()->SweepSingleByObjectType(Hit, TraceStart, TraceEnd, FQuat::Identity, ObjParams, Shape, Params))
+//		{
+//			// Overwrite trace end with impact point in world
+//			TraceEnd = Hit.ImpactPoint;
+//		}
+//
+//		// find new direction/rotation from Hand pointing to impact point in world.
+//		FRotator ProjRotation = FRotationMatrix::MakeFromX(TraceEnd - HandLocation).Rotator();
+//
+//		FTransform SpawnTM = FTransform(ProjRotation, HandLocation);
+//		GetWorld()->SpawnActor<AActor>(ClassToSpawn, SpawnTM, SpawnParams);
+//	}
+//}
+
+void ASCharacter::SprintStart()
+{
+	ActionComp->StartActionByName(this, "Sprint");
 }
+
+void ASCharacter::SprintStop()
+{
+	ActionComp->StopActionByName(this, "Sprint");
+}
+
+
+void ASCharacter::PrimaryAttack()
+{
+	ActionComp->StartActionByName(this, "PrimaryAttack");
+}
+
+
+
+void ASCharacter::BlackHoleAttack()
+{
+	ActionComp->StartActionByName(this, "Blackhole");
+}
+
 
 void ASCharacter::Dash()
 {
-	PlayAnimMontage(AttackAnim);
-
-	GetWorldTimerManager().SetTimer(TimerHandle_Dash, this, &ASCharacter::Dash_TimeElapsed, AttackAnimDelay);
-}
-
-
-void ASCharacter::Dash_TimeElapsed()
-{
-	SpawnProjectile(DashProjectileClass);
-}
-
-void ASCharacter::BlackHole()
-{
-	PlayAnimMontage(AttackAnim);
-
-	GetWorldTimerManager().SetTimer(TimerHandle_BlackHole, this, &ASCharacter::BlackHole_TimeElapsed, AttackAnimDelay);
-}
-
-void ASCharacter::BlackHole_TimeElapsed()
-{
-	SpawnProjectile(BlackHoleProjectileClass);
-}
-
-void ASCharacter::SpawnProjectile(TSubclassOf<AActor> ClassToSpawn)
-{
-	if (ensureAlways(ClassToSpawn))
-	{
-		FVector HandLocation = GetMesh()->GetSocketLocation("Muzzle_01");
-
-		FActorSpawnParameters SpawnParams;
-		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-		SpawnParams.Instigator = this;
-
-		FCollisionShape Shape;
-		Shape.SetSphere(20.0f);
-
-		// Ignore Player
-		FCollisionQueryParams Params;
-		Params.AddIgnoredActor(this);
-
-		FCollisionObjectQueryParams ObjParams;
-		ObjParams.AddObjectTypesToQuery(ECC_WorldDynamic);
-		ObjParams.AddObjectTypesToQuery(ECC_WorldStatic);
-		ObjParams.AddObjectTypesToQuery(ECC_Pawn);
-
-		FVector TraceStart = CameraComp->GetComponentLocation();
-
-		// endpoint far into the look-at distance (not too far, still adjust somewhat towards crosshair on a miss)
-		FVector TraceEnd = CameraComp->GetComponentLocation() + (GetControlRotation().Vector() * 5000);
-
-		FHitResult Hit;
-		// returns true if we got to a blocking hit
-		if (GetWorld()->SweepSingleByObjectType(Hit, TraceStart, TraceEnd, FQuat::Identity, ObjParams, Shape, Params))
-		{
-			// Overwrite trace end with impact point in world
-			TraceEnd = Hit.ImpactPoint;
-		}
-
-		// find new direction/rotation from Hand pointing to impact point in world.
-		FRotator ProjRotation = FRotationMatrix::MakeFromX(TraceEnd - HandLocation).Rotator();
-
-		FTransform SpawnTM = FTransform(ProjRotation, HandLocation);
-		GetWorld()->SpawnActor<AActor>(ClassToSpawn, SpawnTM, SpawnParams);
-	}
+	ActionComp->StartActionByName(this, "Dash");
 }
 
 void ASCharacter::PrimaryInteract()
@@ -248,6 +294,12 @@ void ASCharacter::PrimaryInteract()
   
 void ASCharacter::OnHealthChanged(AActor* InstigatorActor, USAttributeComponent* OwningComp, float NewHealth, float Delta)
 {
+
+	if (Delta < 0.0f)
+	{
+		GetMesh()->SetScalarParameterValueOnMaterials(TimeToHitParamName, GetWorld()->TimeSeconds);
+	}
+
 	if (NewHealth <= 0.0f && Delta < 0.0f)
 	{
 		APlayerController* PC = Cast<APlayerController>(GetController());
@@ -259,4 +311,14 @@ void ASCharacter::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
     AttributeComp->OnHealthChanged.AddDynamic(this, &ASCharacter::OnHealthChanged);
+}
+
+void ASCharacter::HealSelf(float Amount /* = 100 */)
+{
+	AttributeComp->ApplyHealthChange(this, Amount);
+}
+
+FVector ASCharacter::GetPawnViewLocation() const
+{
+	return CameraComp->GetComponentLocation();
 }

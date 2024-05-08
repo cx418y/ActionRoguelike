@@ -9,6 +9,9 @@
 class USphereComponent;
 class UProjectileMovementComponent;
 class UParticleSystemComponent;
+class UAudioComponent;
+class USoundCue;
+// class UCameraShake;
 
 UCLASS()
 class ACTIONROGUELIKE_API ASProjectileBase : public AActor
@@ -16,8 +19,21 @@ class ACTIONROGUELIKE_API ASProjectileBase : public AActor
 	GENERATED_BODY()
 	
 protected:
+
+// 	UPROPERTY(EditDefaultsOnly, Category = "Effects|Shake")
+// 	TSubclassOf<UCameraShake> ImpactShake;
+
+// 	UPROPERTY(EditDefaultsOnly, Category = "Effects|Shake")
+// 	float ImpactShakeInnerRadius;
+// 
+// 	UPROPERTY(EditDefaultsOnly, Category = "Effects|Shake")
+// 	float ImpactShakeOuterRadius;
+
 	UPROPERTY(EditDefaultsOnly, Category = "Effects")
 	UParticleSystem* ImpactVFX;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Effects")
+	USoundCue* ImpactSound;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	USphereComponent* SphereComp;
@@ -27,6 +43,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UParticleSystemComponent* EffectComp;
+
+	UPROPERTY(VisibleAnywhere, Category = "Components")
+	UAudioComponent* AudioComp;
 
 	UFUNCTION()
 	virtual void OnActorHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
